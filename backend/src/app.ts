@@ -3,10 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import moviesRouter from './api/movies';
 import reviewsRouter from './api/reviews';
-import connectDB from './config/prisma';
 
 dotenv.config();
-connectDB();
 
 const app = express();
 

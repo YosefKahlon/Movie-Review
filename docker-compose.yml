@@ -1,13 +1,16 @@
-# Docker Compose for backend and MongoDB
+# Docker Compose for backend, frontend, and MongoDB
 version: '3.8'
 services:
-  mongo:
-    image: mongo:7
-    restart: always
+  frontend:
+    build:
+      context: ./frontend
     ports:
-      - '27017:27017'
-    volumes:
-      - mongo_data:/data/db
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+
   backend:
     build: ./backend
     command: npm run dev
@@ -19,5 +22,22 @@ services:
       MONGODB_URI: mongodb://mongo:27017/moviedb
     depends_on:
       - mongo
+    networks:
+      - appnet
+
+  mongo:
+    image: mongo:7
+    restart: always
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
+
 volumes:
   mongo_data:

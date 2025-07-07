@@ -1,0 +1,20 @@
+import { Router } from 'express';
+import * as reviewService from '../services/reviewService';
+
+const router = Router();
+
+router.get('/', async (req, res) => {
+  const reviews = await reviewService.getReviews();
+  res.json(reviews);
+});
+
+router.post('/', async (req, res) => {
+  const { rating, content, reviewer, movie } = req.body;
+  if (!rating || !content || !reviewer || !movie) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  const review = await reviewService.addReview(rating, content, reviewer, movie);
+  res.status(201).json(review);
+});
+
+export default router;

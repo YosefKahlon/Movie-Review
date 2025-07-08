@@ -35,3 +35,8 @@ variable "network_interface_id" {
   description = "ID of the network interface to attach to the VM"
   type        = string
 }
+
+variable "ssh_public_key_path" {
+  description = "Path to the SSH public key file"
+  type        = string
+}

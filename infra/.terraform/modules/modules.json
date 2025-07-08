@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"network","Source":"./modules/network","Dir":"modules/network"},{"Key":"resource_group","Source":"./modules/resource-group","Dir":"modules/resource-group"},{"Key":"vm","Source":"./modules/vm","Dir":"modules/vm"}]}

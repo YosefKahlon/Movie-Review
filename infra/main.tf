@@ -35,4 +35,5 @@ module "vm" {
   admin_username        = var.admin_username
   admin_password        = var.admin_password
   network_interface_id  = module.network.network_interface_id
+  ssh_public_key_path   = var.ssh_public_key_path
 }

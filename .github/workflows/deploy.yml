@@ -72,18 +72,20 @@ jobs:
           terraform_version: 1.7.5
       - name: Terraform Init (env)
         run: |
-          cd infra
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            cd infra
             terraform init -reconfigure -backend-config=prod/backend.prod.config
           else
+            cd infra
             terraform init -reconfigure -backend-config=dev/backend.dev.config
           fi
       - name: Terraform Apply (env)
         run: |
-          cd infra
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            cd infra
             terraform apply -auto-approve -var-file=prod/prod.tfvars
           else
+            cd infra
             terraform apply -auto-approve -var-file=dev/dev.tfvars
           fi
 

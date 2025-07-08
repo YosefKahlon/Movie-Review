@@ -2,8 +2,7 @@
 version: '3.8'
 services:
   frontend:
-    build:
-      context: ./frontend
+    image: kinvow/movie-frontend:latest
     depends_on:
       - backend
     networks:
@@ -12,7 +11,7 @@ services:
       - frontend_build:/app
 
   backend:
-    build: ./backend
+    image: kinvow/movie-backend:latest
     command: npm run dev
     volumes:
       - ./backend:/app

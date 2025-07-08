@@ -4,22 +4,18 @@ services:
   frontend:
     build:
       context: ./frontend
-    ports:
-      - '3000:3000'
     depends_on:
       - backend
     networks:
       - appnet
     volumes:
-      - frontend_build:/app/dist  # Share build output
+      - frontend_build:/app
 
   backend:
     build: ./backend
     command: npm run dev
     volumes:
       - ./backend:/app
-    ports:
-      - '4000:4000'
     environment:
       MONGODB_URI: mongodb://mongo:27017/moviedb
     depends_on:

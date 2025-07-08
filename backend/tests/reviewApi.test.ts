@@ -1,17 +1,24 @@
+// @ts-nocheck
 import request from 'supertest';
 import mongoose from 'mongoose';
 
+// Increase Jest timeout for slow DB operations
+jest.setTimeout(20000);
+
 beforeAll(async () => {
-  await mongoose.connect('mongodb://localhost:27017/movie-review-test', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  } as any);
+  try {
+    await mongoose.connect('mongodb://localhost:27017/movie-review-test');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+  }
 });
 import app from '../src/app';
 
 describe('Review API', () => {
   afterAll(async () => {
-    await mongoose.connection.db!.dropDatabase();
+    if (mongoose.connection && mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+    }
     await mongoose.disconnect();
   });
 

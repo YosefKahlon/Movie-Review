@@ -2,7 +2,7 @@
 version: '3.8'
 services:
   frontend:
-    image: ${DOCKERHUB_USERNAME:-kinwon}/movie-frontend:latest
+    image: movie.azurecr.io/movie-frontend:latest
     depends_on:
       - backend
     networks:
@@ -11,7 +11,7 @@ services:
       - frontend_build:/app
 
   backend:
-    image: ${DOCKERHUB_USERNAME:-kinwon}/movie-backend:latest
+    image: movie.azurecr.io/movie-backend:latest
     command: npm run dev
     volumes:
       - ./backend:/app

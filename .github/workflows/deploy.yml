@@ -90,7 +90,7 @@ jobs:
         run: |
           cd infra
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            terraform apply -auto-approve -var-file=prod/prod.tfvars
+            terraform apply -auto-approve -var-file=prod/prod.tfvars -var="admin_password=${{ secrets.ADMIN_PASSWORD }}"
           else
             terraform apply -auto-approve -var-file=dev/dev.tfvars
           fi

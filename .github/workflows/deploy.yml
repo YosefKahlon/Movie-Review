@@ -73,16 +73,16 @@ jobs:
       - name: Terraform Init (env)
         run: |
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            terraform init -reconfigure -backend-config=prod/backend.prod.config
+            terraform init -reconfigure -backend-config=infra/prod/backend.prod.config
           else
-            terraform init -reconfigure -backend-config=dev/backend.dev.config
+            terraform init -reconfigure -backend-config=infra/dev/backend.dev.config
           fi
       - name: Terraform Apply (env)
         run: |
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            terraform apply -auto-approve -var-file=prod/prod.tfvars
+            terraform apply -auto-approve -var-file=infra/prod/prod.tfvars
           else
-            terraform apply -auto-approve -var-file=dev/dev.tfvars
+            terraform apply -auto-approve -var-file=infra/dev/dev.tfvars
           fi
 
   deploy-to-vm:

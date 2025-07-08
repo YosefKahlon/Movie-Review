@@ -17,19 +17,23 @@ const App: React.FC = () => {
 
   const fetchMovies = async () => {
     try {
+      console.log('Fetching movies from API...');
       const res = await axios.get('/api/movies');
+      console.log('Movies API response:', res.data);
       setMovies(res.data);
     } catch (err) {
-      // handle error
+      console.error('Error fetching movies:', err);
     }
   };
 
   const fetchReviews = async () => {
     try {
+      console.log('Fetching reviews from API...');
       const res = await axios.get('/api/reviews');
+      console.log('Reviews API response:', res.data);
       setReviews(res.data);
     } catch (err) {
-      // handle error
+      console.error('Error fetching reviews:', err);
     }
   };
 

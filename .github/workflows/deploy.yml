@@ -78,6 +78,14 @@ jobs:
           else
             terraform init -reconfigure -backend-config=dev/backend.dev.config
           fi
+      - name: Terraform Plan (env)
+        run: |
+          cd infra
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            terraform plan -var-file=prod/prod.tfvars
+          else
+            terraform plan -var-file=dev/dev.tfvars
+          fi
       - name: Terraform Apply (env)
         run: |
           cd infra
@@ -101,5 +109,3 @@ jobs:
             cd /path/to/your/app
             docker-compose pull
             docker-compose up -d --remove-orphans
-
-

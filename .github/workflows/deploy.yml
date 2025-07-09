@@ -140,11 +140,7 @@ jobs:
         id: tfapply
         run: |
           cd infra
-          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            terraform apply -no-color -auto-approve tfplan | tee ../terraform_apply.log
-          else
-            terraform apply -no-color -auto-approve tfplan | tee ../terraform_apply.log
-          fi
+          terraform apply -no-color -auto-approve tfplan | tee ../terraform_apply.log
       - name: Upload terraform apply log
         uses: actions/upload-artifact@v4
         if: always()

@@ -56,7 +56,7 @@ jobs:
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/movie-frontend:latest ./frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/movie-frontend:latest
 
-  terraform-deploy:
+  terraform-plan:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
@@ -82,21 +82,123 @@ jobs:
         run: |
           cd infra
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            terraform plan -var-file=prod/prod.tfvars
+            terraform plan -var-file=prod/prod.tfvars -out=tfplan
           else
-            terraform plan -var-file=dev/dev.tfvars
+            terraform plan -var-file=dev/dev.tfvars -out=tfplan
+          fi
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.event.inputs.environment }}
+          path: infra/tfplan
+          retention-days: 7
+  
+          
+ # Manual approval step - only for production
+  approve-production:
+    if: github.event.inputs.environment == 'prod'
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: production-approval
+    steps:
+      - name: Manual approval required
+        run: |
+          echo "Manual approval required for production deployment"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Please review the Terraform plan and approve this deployment."
+  
+  # # Manual approval step - for development (optional, can be removed if not needed)
+  # approve-development:
+  #   if: github.event.inputs.environment == 'dev'
+  #   needs: terraform-plan
+  #   runs-on: ubuntu-latest
+  #   environment: development-approval
+  #   steps:
+  #     - name: Development deployment approval
+  #       run: |
+  #         echo "Development deployment approval"
+  #         echo "Environment: ${{ github.event.inputs.environment }}"
+  #         echo "Proceeding with development deployment after approval."        
+          
+
+  terraform-apply:
+    needs: [terraform-plan, approve-production]
+    if: always() && (needs.approve-production.result == 'success' )
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-${{ github.event.inputs.environment }}
+          path: infra/
+      - name: Terraform Init (env)
+        run: |
+          cd infra
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            terraform init -reconfigure -backend-config=prod/backend.prod.config
+          else
+            terraform init -reconfigure -backend-config=dev/backend.dev.config
           fi
       - name: Terraform Apply (env)
         run: |
           cd infra
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            terraform apply -auto-approve -var-file=prod/prod.tfvars -var="admin_password=${{ secrets.ADMIN_PASSWORD }}"
+            terraform apply -auto-approve tfplan
           else
-            terraform apply -auto-approve -var-file=dev/dev.tfvars
+            terraform apply -auto-approve tfplan
           fi
 
+  # terraform-deploy:
+  #   needs: build-and-push
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  #     ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  #     ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #     ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Terraform
+  #       uses: hashicorp/setup-terraform@v3
+  #       with:
+  #         terraform_version: 1.7.5
+  #     - name: Terraform Init (env)
+  #       run: |
+  #         cd infra
+  #         if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+  #           terraform init -reconfigure -backend-config=prod/backend.prod.config
+  #         else
+  #           terraform init -reconfigure -backend-config=dev/backend.dev.config
+  #         fi
+  #     - name: Terraform Plan (env)
+  #       run: |
+  #         cd infra
+  #         if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+  #           terraform plan -var-file=prod/prod.tfvars
+  #         else
+  #           terraform plan -var-file=dev/dev.tfvars
+  #         fi
+  #     - name: Terraform Apply (env)
+  #       run: |
+  #         cd infra
+  #         if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+  #           terraform apply -auto-approve -var-file=prod/prod.tfvars -var="admin_password=${{ secrets.ADMIN_PASSWORD }}"
+  #         else
+  #           terraform apply -auto-approve -var-file=dev/dev.tfvars
+  #         fi
+
   deploy-to-vm:
-    needs: terraform-deploy
+    needs: terraform-apply
     runs-on: ubuntu-latest
     steps:
       - name: Install Docker and Docker Compose

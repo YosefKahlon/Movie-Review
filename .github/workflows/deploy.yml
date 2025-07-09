@@ -145,6 +145,12 @@ jobs:
           else
             terraform apply -auto-approve tfplan | tee ../../terraform_apply.log
           fi
+      - name: Upload terraform apply log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terraform_apply
+          path: terraform_apply.log
 
 
   deploy-to-vm:
@@ -198,6 +204,12 @@ jobs:
         if: always()
         run: |
           cat /home/runner/.ssh/known_hosts > deploy_to_vm.log || echo "No SSH log found" > deploy_to_vm.log
+      - name: Upload deploy-to-vm log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deploy_to_vm
+          path: deploy_to_vm.log
 
   health-check:
     needs: deploy-to-vm

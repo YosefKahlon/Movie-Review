@@ -197,6 +197,7 @@ jobs:
   health-check:
     needs: deploy-to-vm
     runs-on: ubuntu-latest
+    if: always() && (needs.deploy-to-vm.result == 'success')
     steps:
       - name: Wait for VM HTTP health check (Frontend)
         run: |
@@ -212,3 +213,16 @@ jobs:
             echo "Waiting for VM HTTP backend health..."
             sleep 10
           done
+
+  notify-slack:
+    needs: health-check
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify Slack on Success or Failure
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

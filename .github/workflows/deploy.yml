@@ -193,10 +193,22 @@ jobs:
             fi
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans
-      - name: Wait for VM HTTP health check
+
+  health-check:
+    needs: deploy-to-vm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for VM HTTP health check (Frontend)
         run: |
           for i in {1..30}; do
-            curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/health && break
-            echo "Waiting for VM HTTP health..."
+            curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/ && break
+            echo "Waiting for VM HTTP frontend health..."
+            sleep 10
+          done
+      - name: Wait for VM HTTP health check (Backend)
+        run: |
+          for i in {1..30}; do
+            curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/api/health && break
+            echo "Waiting for VM HTTP backend health..."
             sleep 10
           done

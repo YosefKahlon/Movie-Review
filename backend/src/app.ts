@@ -12,6 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/movies', moviesRouter);
 app.use('/api/reviews', reviewsRouter);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 app.get('/', (req, res) => {
   res.json({ message: 'Movie Review API is running!' });
 });

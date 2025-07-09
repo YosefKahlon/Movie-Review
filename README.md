@@ -2,6 +2,12 @@
 
 This project is a full-stack Movie Review application demonstrating modern DevOps practices using Docker, Azure, Terraform, and GitHub Actions CI/CD.
 
+## Live Demo
+
+- 🚀 [Production Environment](http://51.145.134.252/)
+- 🧪 [Development Environment](http://20.16.99.88/)
+
+----
 ![Architecture Diagram](image.png)
 
 https://app.diagrams.net/#
@@ -42,4 +48,5 @@ https://app.diagrams.net/#
 - `backend/` - Express API
 - `infra/` - Terraform code for Azure
 - `.github/workflows/deploy.yml` - Main CI/CD pipeline
+
 

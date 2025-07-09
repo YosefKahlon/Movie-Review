@@ -4,6 +4,8 @@ This project is a full-stack Movie Review application demonstrating modern DevOp
 
 ![Architecture Diagram](image.png)
 
+https://app.diagrams.net/#
+
 ## Project Overview
 - **Frontend:** React (Vite) app for browsing and reviewing movies
 - **Backend:** Node.js/Express API with endpoints for movies and reviews
@@ -41,9 +43,3 @@ This project is a full-stack Movie Review application demonstrating modern DevOp
 - `infra/` - Terraform code for Azure
 - `.github/workflows/deploy.yml` - Main CI/CD pipeline
 
-## Diagram
-See the included architecture diagram for a high-level overview.
-
----
-
-For more details, see comments in the workflow and code files.

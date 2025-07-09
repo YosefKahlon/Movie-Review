@@ -92,8 +92,7 @@ jobs:
           name: terraform-plan-${{ github.event.inputs.environment }}
           path: infra/tfplan
           retention-days: 7
-  
-          
+           
  # Manual approval step - only for production
   approve-production:
     if: github.event.inputs.environment == 'prod'
@@ -106,9 +105,7 @@ jobs:
           echo "Manual approval required for production deployment"
           echo "Environment: ${{ github.event.inputs.environment }}"
           echo "Please review the Terraform plan and approve this deployment."
-  
-      
-        
+          
   terraform-apply:
     needs: [terraform-plan, approve-production]
     if: |
@@ -151,6 +148,7 @@ jobs:
 
   deploy-to-vm:
     needs: terraform-apply
+    if: always() && (needs.terraform-apply.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Install Docker and Docker Compose
@@ -195,3 +193,10 @@ jobs:
             fi
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans
+      - name: Wait for VM HTTP health check
+        run: |
+          for i in {1..30}; do
+            curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/health && break
+            echo "Waiting for VM HTTP health..."
+            sleep 10
+          done

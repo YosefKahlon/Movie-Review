@@ -137,12 +137,13 @@ jobs:
             terraform init -reconfigure -backend-config=dev/backend.dev.config
           fi
       - name: Terraform Apply (env)
+        id: tfapply
         run: |
           cd infra
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            terraform apply -auto-approve tfplan
+            terraform apply -auto-approve tfplan | tee ../../terraform_apply.log
           else
-            terraform apply -auto-approve tfplan
+            terraform apply -auto-approve tfplan | tee ../../terraform_apply.log
           fi
 
 
@@ -193,6 +194,10 @@ jobs:
             fi
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans
+      - name: Save deploy-to-vm log
+        if: always()
+        run: |
+          cat /home/runner/.ssh/known_hosts > deploy_to_vm.log || echo "No SSH log found" > deploy_to_vm.log
 
   health-check:
     needs: deploy-to-vm
@@ -200,29 +205,111 @@ jobs:
     if: always() && (needs.deploy-to-vm.result == 'success')
     steps:
       - name: Wait for VM HTTP health check (Frontend)
+        id: fe
         run: |
           for i in {1..30}; do
-            curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/ && break
-            echo "Waiting for VM HTTP frontend health..."
+            if curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/; then
+              echo "Frontend health check: SUCCESS" | tee -a health-summary.txt
+              exit 0
+            fi
+            echo "Waiting for VM HTTP frontend health..." | tee -a health-summary.txt
             sleep 10
           done
+          echo "Frontend health check: FAILED" | tee -a health-summary.txt
+          exit 1
       - name: Wait for VM HTTP health check (Backend)
+        id: be
         run: |
           for i in {1..30}; do
-            curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/api/health && break
-            echo "Waiting for VM HTTP backend health..."
+            if curl -fs http://${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}/api/health; then
+              echo "Backend health check: SUCCESS" | tee -a health-summary.txt
+              exit 0
+            fi
+            echo "Waiting for VM HTTP backend health..." | tee -a health-summary.txt
             sleep 10
           done
+          echo "Backend health check: FAILED" | tee -a health-summary.txt
+          exit 1
+      - name: Download terraform apply log
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform_apply
+        continue-on-error: true
+      - name: Download deploy-to-vm log
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy_to_vm
+        continue-on-error: true
+      - name: Upload health check summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-summary
+          path: health-summary.txt
+
+  save-deployment-log:
+    needs: health-check
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download terraform apply log
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform_apply
+        continue-on-error: true
+      - name: Download deploy-to-vm log
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy_to_vm
+        continue-on-error: true
+      - name: Download health check summary
+        uses: actions/download-artifact@v4
+        with:
+          name: health-summary
+        continue-on-error: true
+      - name: Save deployment log
+        run: |
+          echo "Deployment run at $(date)" >> deployment_log.md
+          echo "Environment: ${{ github.event.inputs.environment }}" >> deployment_log.md
+          echo "Workflow: ${{ github.workflow }}" >> deployment_log.md
+          echo "Run ID: ${{ github.run_id }}" >> deployment_log.md
+          echo "Commit: ${{ github.sha }}" >> deployment_log.md
+          echo "Actor: ${{ github.actor }}" >> deployment_log.md
+          echo "--- Terraform Apply Log ---" >> deployment_log.md
+          cat terraform_apply.log >> deployment_log.md || echo "No terraform apply log found" >> deployment_log.md
+          echo "--- Deploy to VM Log ---" >> deployment_log.md
+          cat deploy_to_vm.log >> deployment_log.md || echo "No deploy to vm log found" >> deployment_log.md
+          echo "--- Health Check Results ---" >> deployment_log.md
+          cat health-summary.txt >> deployment_log.md || echo "No health check summary found" >> deployment_log.md
+          echo "---------------------------" >> deployment_log.md
+      - name: Upload deployment log
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-log
+          path: deployment_log.md
 
   notify-slack:
     needs: health-check
     runs-on: ubuntu-latest
     if: always()
     steps:
+      - name: Download health check summary
+        uses: actions/download-artifact@v4
+        with:
+          name: health-summary
+      - name: Read health check summary
+        id: summary
+        run: |
+          SUMMARY=$(cat health-summary.txt)
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Notify Slack on Success or Failure
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
           fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          text: |
+            Health Check Results:
+            ${{ steps.summary.outputs.summary }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

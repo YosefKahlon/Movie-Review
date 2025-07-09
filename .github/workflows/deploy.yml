@@ -99,6 +99,25 @@ jobs:
     needs: terraform-deploy
     runs-on: ubuntu-latest
     steps:
+      - name: Install Docker and Docker Compose
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ github.event.inputs.environment == 'prod' && secrets.VM_PUBLIC_IP_PROD || secrets.VM_PUBLIC_IP_DEV }}
+          username: ${{ github.event.inputs.environment == 'prod' && secrets.VM_SSH_USER_PROD || secrets.VM_SSH_USER_DEV }}
+          key: ${{ github.event.inputs.environment == 'prod' && secrets.VM_SSH_KEY_PROD || secrets.VM_SSH_KEY_DEV }}
+          script: |
+            # Install Docker if not present
+            if ! command -v docker &> /dev/null; then
+              curl -fsSL https://get.docker.com | sudo sh
+              sudo usermod -aG docker $USER
+              newgrp docker
+            fi
+            # Install Docker Compose plugin if not present
+            if ! docker compose version &> /dev/null; then
+              if command -v apt-get &> /dev/null; then
+                sudo apt-get update && sudo apt-get install -y docker-compose-plugin
+              fi
+            fi
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -106,13 +125,6 @@ jobs:
           username: ${{ github.event.inputs.environment == 'prod' && secrets.VM_SSH_USER_PROD || secrets.VM_SSH_USER_DEV }}
           key: ${{ github.event.inputs.environment == 'prod' && secrets.VM_SSH_KEY_PROD || secrets.VM_SSH_KEY_DEV }}
           script: |
-            # Use Docker Compose plugin if available, fallback to install
-            if ! docker compose version &> /dev/null; then
-              # Try to install Docker Compose plugin (for Docker >= 20.10)
-              if command -v apt-get &> /dev/null; then
-                sudo apt-get update && sudo apt-get install -y docker-compose-plugin
-              fi
-            fi
             # Ensure code is up-to-date
             REPO_DIR="/home/azureuser/Movie-Review"
             REPO_URL="https://github.com/${{ github.repository }}.git"

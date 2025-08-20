@@ -20,7 +20,8 @@ jobs:
 
       - name: test222
         run: |
-          echo test22233        
+          echo test22233 
+          exit 1
 
 
 

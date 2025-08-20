@@ -1,0 +1,28 @@
+name: Deploy Frontend to Azure Static Web Apps
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, closed]
+  workflow_dispatch:
+  workflow_call:
+  
+
+jobs:
+  frontend-build-and-lint:
+    runs-on: ubuntu-latest
+    env:
+      FE_DIR: frontend
+
+    steps:
+   
+
+      - name: test22
+        run: |
+          echo test22233        
+
+
+
+ 
+
